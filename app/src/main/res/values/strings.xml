@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">"Bluetooth Services "</string>
+    <string name="search_devices">Search for Bluetooth Devices</string>
+</resources>
