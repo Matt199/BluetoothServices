@@ -32,6 +32,9 @@ public class BTService extends Service {
     private Handler handler;
 
 
+    final static String MY_ACTION = "MY_ACTION";
+
+
     public StringBuilder recDataString = new StringBuilder();
 
     public BTService() {
@@ -74,6 +77,13 @@ public class BTService extends Service {
 
                             int wartoscInt = Integer.parseInt(wiadomosc);
 
+                            Intent sendIntent = new Intent();
+
+                            sendIntent.putExtra("SEND_DISTANCE", wartoscInt);
+
+                            sendIntent.setAction(MY_ACTION);
+
+                            sendBroadcast(sendIntent);
 
                             recDataString.delete(0, recDataString.length());
 
