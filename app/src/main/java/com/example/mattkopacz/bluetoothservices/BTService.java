@@ -7,22 +7,32 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.support.annotation.IntDef;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.UUID;
 
 public class BTService extends Service {
 
 
+    private ConnectedThread mConnectedThread;
     private BluetoothAdapter btAdapter;
     private static UUID myUUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private BluetoothSocket mmServerSocket;
     private boolean isBTConnectet = false;
 
+    final int hanlderState = 0;
+
+    private Handler handler;
+
+
+    public StringBuilder recDataString = new StringBuilder();
 
     public BTService() {
     }
@@ -35,6 +45,48 @@ public class BTService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
+
+        handler = new Handler() {
+
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+
+
+                if(msg.what == hanlderState){
+
+                    // If recive any message from thread then....
+
+                        byte[] rBuff = (byte[]) msg.obj; // recived message (bytes)
+
+                        String readMessage = new String(rBuff, 0, msg.arg1); // convert that message to string
+
+                        recDataString.append(readMessage);
+
+                        int endOfIndex = recDataString.indexOf("~");
+
+                        if (endOfIndex > 0) {
+
+                            String wiadomosc = recDataString.substring(1, endOfIndex);
+
+                            Log.d("Odczyt", wiadomosc);
+
+                            int wartoscInt = Integer.parseInt(wiadomosc);
+
+
+                            recDataString.delete(0, recDataString.length());
+
+
+                        }
+                    }
+
+                }
+
+        };
+
+
+
 
         String adressMac = intent.getStringExtra("MAC_ADRESS");
 
@@ -60,9 +112,11 @@ public class BTService extends Service {
 
                 mmServerSocket.connect();
 
-
-
                 isBTConnectet = true;
+
+
+                mConnectedThread = new ConnectedThread(mmServerSocket);
+                mConnectedThread.start();
 
             }
         } catch (IOException e) {
@@ -81,4 +135,64 @@ public class BTService extends Service {
 
         return START_NOT_STICKY;
     }
+
+
+
+    private class ConnectedThread extends Thread {
+
+        private final InputStream mmInStream;
+
+
+        public ConnectedThread(BluetoothSocket socket) {
+
+            mmServerSocket = socket;
+
+            InputStream tmp = null;
+
+
+            // Get the input stream
+
+            try {
+                tmp = socket.getInputStream();
+            } catch (IOException e) {
+
+                e.printStackTrace();
+
+            }
+
+            mmInStream = tmp;
+        }
+
+        @Override
+        public void run() {
+            super.run();
+
+            byte[] mmBuffer = new byte[256]; // bytes returned from read
+
+            int numBytes;
+
+            // Start listening
+
+            while (true) {
+
+                try {
+                    numBytes = mmInStream.read(mmBuffer);
+
+                    handler.obtainMessage(hanlderState, numBytes, -1, mmBuffer).sendToTarget();
+
+
+                } catch (IOException e) {
+
+                    e.printStackTrace();
+                    Toast.makeText(getBaseContext(), "Input stream was disconnected", Toast.LENGTH_LONG).show();
+                    break;
+
+                }
+
+            }
+
+
+        }
+    }
+
 }
