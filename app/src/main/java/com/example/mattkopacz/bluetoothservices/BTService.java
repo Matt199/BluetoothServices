@@ -29,7 +29,11 @@ public class BTService extends Service {
 
     final int hanlderState = 0;
 
-    private Handler handler;
+
+
+    private MyHandler handler;
+
+
 
 
     final static String MY_ACTION = "MY_ACTION";
@@ -46,64 +50,32 @@ public class BTService extends Service {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
+
+
+
+
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
 
 
-        handler = new Handler() {
-
-            @Override
-            public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-
-
-                if(msg.what == hanlderState){
-
-                    // If recive any message from thread then....
-
-                        byte[] rBuff = (byte[]) msg.obj; // recived message (bytes)
-
-                        String readMessage = new String(rBuff, 0, msg.arg1); // convert that message to string
-
-                        recDataString.append(readMessage);
-
-                        int endOfIndex = recDataString.indexOf("~");
-
-                        if (endOfIndex > 0) {
-
-                            String wiadomosc = recDataString.substring(1, endOfIndex);
-
-                            Log.d("Odczyt", wiadomosc);
-
-                            int wartoscInt = Integer.parseInt(wiadomosc);
-
-                            Intent sendIntent = new Intent();
-
-                            sendIntent.putExtra("SEND_DISTANCE", wartoscInt);
-
-                            sendIntent.setAction(MY_ACTION);
-
-                            sendBroadcast(sendIntent);
-
-                            recDataString.delete(0, recDataString.length());
-
-
-                        }
-                    }
-
-                }
-
-        };
-
-
-
-
         String adressMac = intent.getStringExtra("MAC_ADRESS");
 
-        Log.d("Adres", "The Adress is = " + adressMac);
+
+        handler = new MyHandler();
 
 
+        //Log.d("Adres", "The Adress is = " + adressMac);
 
+        tryToConnect(adressMac);
+
+
+        return START_NOT_STICKY;
+    }
+
+
+    // Try to connect (clean up the mess)
+
+    private void tryToConnect(String address) {
 
         try {
 
@@ -113,7 +85,7 @@ public class BTService extends Service {
 
                 btAdapter = BluetoothAdapter.getDefaultAdapter();
 
-                BluetoothDevice device = btAdapter.getRemoteDevice(adressMac);
+                BluetoothDevice device = btAdapter.getRemoteDevice(address);
 
                 mmServerSocket = device.createInsecureRfcommSocketToServiceRecord(myUUID);
 
@@ -142,8 +114,6 @@ public class BTService extends Service {
 
         }
 
-
-        return START_NOT_STICKY;
     }
 
 
@@ -203,6 +173,53 @@ public class BTService extends Service {
 
 
         }
+    }
+
+
+    // Handler class (clean up the mess)
+
+    private class MyHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+
+
+            if (msg.what == hanlderState) {
+
+                // If recive any message from thread then....
+
+                byte[] rBuff = (byte[]) msg.obj; // recived message (bytes)
+
+                String readMessage = new String(rBuff, 0, msg.arg1); // convert that message to string
+
+                recDataString.append(readMessage);
+
+                int endOfIndex = recDataString.indexOf("~");
+
+                if (endOfIndex > 0) {
+
+                    String wiadomosc = recDataString.substring(1, endOfIndex);
+
+                    Log.d("Odczyt", wiadomosc);
+
+                    int wartoscInt = Integer.parseInt(wiadomosc);
+
+                    Intent sendIntent = new Intent();
+
+                    sendIntent.putExtra("SEND_DISTANCE", wartoscInt);
+
+                    sendIntent.setAction(MY_ACTION);
+
+                    sendBroadcast(sendIntent);
+
+                    recDataString.delete(0, recDataString.length());
+
+
+                }
+            }
+
+        }
+
     }
 
 }
