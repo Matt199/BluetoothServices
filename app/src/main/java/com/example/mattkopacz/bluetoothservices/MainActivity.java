@@ -1,6 +1,7 @@
 package com.example.mattkopacz.bluetoothservices;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
@@ -127,10 +128,15 @@ public class MainActivity extends AppCompatActivity {
                 MACAdress = adress.get(i);
 
                 Intent intent = new Intent(MainActivity.this, ChartActivity.class);
+
+                intent.putExtra("SEND_ADRESS", MACAdress);
+
+                ProgressDialog progressDialog = ProgressDialog.show(MainActivity.this, "Connecting...", "Please Wait");
+
                 startActivity(intent);
 
 
-                intent.putExtra("SEND_ADRESS", MACAdress);
+
 
             }
         }).create();
